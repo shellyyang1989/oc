@@ -115,9 +115,8 @@ func (o *Options) Run() error {
 				}
 				fmt.Fprintf(o.ErrOut, "warning: The requested channel %q is not one of the available channels (%s). You have used --allow-explicit-channel to proceed anyway. Changing the channel to %q.\n", o.Channel, strings.Join(cv.Status.Desired.Channels, ", "), o.Channel)
 			}
-		} else {
-			fmt.Fprintf(o.ErrOut, "warning: No channels known to be compatible with the current version %q; unable to validate %q. Changing the channel to %q anyway.\n", cv.Status.Desired.Version, o.Channel, o.Channel)
-		}
+	} else {
+		fmt.Fprintf(o.ErrOut, "warning: No channels known to be compatible with the current version %q; unable to validate %q. Changing the channel to %q anyway.\n", cv.Status.Desired.Version, o.Channel, o.Channel)
 	}
 
 	cv.Spec.Channel = o.Channel
