@@ -335,7 +335,7 @@ func (o *Options) Run() error {
 
 		if cv.Spec.Channel != "" {
 			if cv.Spec.Upstream == "" {
-				fmt.Fprint(o.Out, "Upstream is unset, so the cluster will use an appropriate default.\n")
+				fmt.Fprint(o.Out, "Upstream is unset, so the cluster will use the default.\n")
 			} else {
 				fmt.Fprintf(o.Out, "Upstream: %s\n", cv.Spec.Upstream)
 			}

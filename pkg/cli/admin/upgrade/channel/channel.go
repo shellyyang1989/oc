@@ -32,6 +32,8 @@ func New(f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command
 			This command will set or clear the update channel, which impacts the list of updates
 			recommended for the cluster.
 
+			If no desired channel is specified, you must pass --allow-explicit-channel to allow channel clear to proceed.
+
 			If there is a list of acceptable channels and the desired channel is not in that list,
 			you must pass --allow-explicit-channel to allow channel change to proceed.
 		`),
@@ -86,35 +88,36 @@ func (o *Options) Run() error {
 
 	if o.Channel == cv.Spec.Channel {
 		if cv.Spec.Channel == "" {
-			fmt.Fprint(o.Out, "info: Cluster channel is already clear\n")
+			fmt.Fprint(o.Out, "info: Cluster channel is already clear (no change)\n")
 		} else {
-			fmt.Fprintf(o.Out, "info: Cluster is already in %s\n", cv.Spec.Channel)
+			fmt.Fprintf(o.Out, "info: Cluster is already in %s (no change)\n", cv.Spec.Channel)
 		}
 		return nil
 	}
 
-	if len(cv.Status.Desired.Channels) > 0 {
-		found := false
-		for _, channel := range cv.Status.Desired.Channels {
-			if channel == o.Channel {
-				found = true
-				break
-			}
-		}
-		if !found {
-			if !o.AllowExplicitChannel {
-				return fmt.Errorf("the requested channel %q is not one of the available channels (%s), you must pass --allow-explicit-channel to continue\n", o.Channel, strings.Join(cv.Status.Desired.Channels, ", "))
-			}
-			if o.Channel != "" {
-				fmt.Fprintf(o.ErrOut, "warning: The requested channel %q is not one of the available channels (%s).  You have used --allow-explicit-channel to proceed anyway.\n", o.Channel, strings.Join(cv.Status.Desired.Channels, ", "))
-			}
-		}
-	} else if o.Channel != "" {
-		fmt.Fprintf(o.ErrOut, "warning: No channels known to be compatible with the current version %q; unable to validate %q.\n", cv.Status.Desired.Version, o.Channel)
-	}
-
 	if o.Channel == "" {
-		fmt.Fprintf(o.ErrOut, "warning: Clearing channel %q; cluster will no longer request available update recommendations.\n", cv.Spec.Channel)
+		if !o.AllowExplicitChannel {
+			return fmt.Errorf("No desired channel is specified. If you want to clear the channel, you must pass --allow-explicit-channel to continue.\n")
+		} else {
+			fmt.Fprintf(o.ErrOut, "warning: Clearing channel %q; cluster will no longer request available update recommendations.\n", cv.Spec.Channel)
+		}
+	} else if len(cv.Status.Desired.Channels) > 0 {
+			found := false
+			for _, channel := range cv.Status.Desired.Channels {
+				if channel == o.Channel {
+					found = true
+					break
+				}
+			}
+			if !found {
+				if !o.AllowExplicitChannel {
+					return fmt.Errorf("the requested channel %q is not one of the available channels (%s), you must pass --allow-explicit-channel to continue\n", o.Channel, strings.Join(cv.Status.Desired.Channels, ", "))
+				}
+				fmt.Fprintf(o.ErrOut, "warning: The requested channel %q is not one of the available channels (%s). You have used --allow-explicit-channel to proceed anyway. Changing the channel to %q.\n", o.Channel, strings.Join(cv.Status.Desired.Channels, ", "), o.Channel)
+			}
+		} else {
+			fmt.Fprintf(o.ErrOut, "warning: No channels known to be compatible with the current version %q; unable to validate %q. Changing the channel to %q anyway.\n", cv.Status.Desired.Version, o.Channel, o.Channel)
+		}
 	}
 
 	cv.Spec.Channel = o.Channel
